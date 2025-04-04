@@ -16,16 +16,21 @@ type Config struct {
 }
 
 type HTTPServer struct {
-	Address     string        `yaml:"host" env-default:"localhost:8081"`
-	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
-	IdleTimeout time.Duration `yaml:"idleTimeout" env-default:"60s"`
+	Address         string        `yaml:"host" env-default:"localhost:8081"`
+	ReadTimeout     time.Duration `yaml:"read-timeout" env-default:"5s"`
+	WriteTimeout    time.Duration `yaml:"write-timeout" env-default:"10s"`
+	IdleTimeout     time.Duration `yaml:"idleTimeout" env-default:"60s"`
+	AccessTokenTTL  time.Duration `yaml:"access-refresh_tokens-ttl" env-default:"1h"`
+	RefreshTokenTTL time.Duration `yaml:"refresh-refresh_tokens-ttl" env-default:"24h"`
+	HashCost        int           `env:"HASH_COST" env-required:"true"`
+	JWTSecret       string        `env:"JWT_SECRET" env-required:"true"`
 }
 
 type Database struct {
 	Host     string `yaml:"host" env-default:"localhost"`
 	Port     int    `yaml:"port" env-default:"5432"`
 	DBName   string `yaml:"name" env-required:"true"`
-	User     string `yaml:"user" env-default:"postgres"`
+	User     string `yaml:"users" env-default:"postgres"`
 	Password string `env:"DB_PASSWORD" env-required:"true"`
 }
 
@@ -33,6 +38,7 @@ func LoadConfig() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
 		return nil, fmt.Errorf("error loading .env file: %w", err)
 	}
+
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		return nil, errors.New("CONFIG_PATH env-var not set")
