@@ -7,7 +7,7 @@ import (
 
 type LoginInputDAO struct {
 	Email    string `json:"email" validate:"required,email" example:"john.doe@example.com"`
-	Password string `json:"password" validate:"required,gte=6,lte=32" example:"P@ssw0rd"`
+	Password string `json:"password" validate:"required" example:"P@ssw0rd"`
 }
 
 func (dao *LoginInputDAO) ValidateWith(v *validator.Validate) error {

@@ -2,6 +2,7 @@ package usersService
 
 import (
 	"context"
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"test-task1/internal/models"
 	"test-task1/pkg/jwt_token"
@@ -66,6 +67,10 @@ func (s *UserService) SignUp(ctx context.Context, userInput *models.SignUpInput)
 
 func (s *UserService) Login(ctx context.Context, email, password string) (string, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
+	if errors.Is(err, models.ErrUserNotFound) {
+		return "", models.ErrInvalidCredentials
+
+	}
 	if err != nil {
 		return "", err
 	}

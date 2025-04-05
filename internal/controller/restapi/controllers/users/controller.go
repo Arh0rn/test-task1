@@ -41,7 +41,7 @@ func (c *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	v := c.service.GetValidator()
 	if err := signUpInputDao.ValidateWith(v); err != nil {
-		rest_errors.HandleError(w, err, http.StatusBadRequest)
+		rest_errors.HandleError(w, models.ErrValidation, http.StatusBadRequest)
 		return
 	}
 
@@ -57,8 +57,10 @@ func (c *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userOutput := daos.ToUserOutputDAO(user)
+
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(user); err != nil {
+	if err := json.NewEncoder(w).Encode(userOutput); err != nil {
 		rest_errors.HandleError(w, rest_errors.ErrInternalServer, http.StatusInternalServerError)
 		return
 	}
@@ -76,7 +78,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 	v := c.service.GetValidator()
 	if err := LoginDao.ValidateWith(v); err != nil {
-		rest_errors.HandleError(w, err, http.StatusBadRequest)
+		rest_errors.HandleError(w, models.ErrValidation, http.StatusBadRequest)
 		return
 	}
 
