@@ -20,6 +20,7 @@ type HTTPServer struct {
 	ReadTimeout     time.Duration `yaml:"read-timeout" env-default:"5s"`
 	WriteTimeout    time.Duration `yaml:"write-timeout" env-default:"10s"`
 	IdleTimeout     time.Duration `yaml:"idle-timeout" env-default:"60s"`
+	ShutdownTimeout time.Duration `yaml:"shutdown-timeout" env-default:"5s"`
 	AccessTokenTTL  time.Duration `yaml:"access-token-ttl" env-default:"1h"`
 	RefreshTokenTTL time.Duration `yaml:"refresh-token-ttl" env-default:"24h"`
 	HashCost        int           `env:"HASH_COST" env-required:"true"`

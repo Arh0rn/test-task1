@@ -1,6 +1,7 @@
 package usersService
 
 import (
+	"context"
 	"github.com/go-playground/validator/v10"
 	"test-task1/internal/models"
 	"test-task1/pkg/jwt_token"
@@ -8,9 +9,12 @@ import (
 )
 
 type UserRepository interface {
-	Create(user *models.SignUpInput) (*models.User, error)
-	GetAll() ([]*models.User, error)
-	GetByEmail(email string) (*models.User, error)
+	Create(context.Context, *models.SignUpInput) (*models.User, error)
+	GetAll(context.Context) ([]*models.User, error)
+	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	GetByID(ctx context.Context, id int) (*models.User, error)
+	UpdateByID(ctx context.Context, user *models.UserUpdate, id int) (*models.UserUpdate, error)
+	DeleteByID(ctx context.Context, id int) error
 }
 
 type Hasher interface {
@@ -44,7 +48,7 @@ func New(
 	}
 }
 
-func (s *UserService) SignUp(userInput *models.SignUpInput) (*models.User, error) {
+func (s *UserService) SignUp(ctx context.Context, userInput *models.SignUpInput) (*models.User, error) {
 
 	hashedPassword, err := s.hasher.Hash(userInput.Password)
 	if err != nil {
@@ -52,7 +56,7 @@ func (s *UserService) SignUp(userInput *models.SignUpInput) (*models.User, error
 	}
 
 	userInput.Password = hashedPassword
-	user, err := s.repo.Create(userInput)
+	user, err := s.repo.Create(ctx, userInput)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +64,8 @@ func (s *UserService) SignUp(userInput *models.SignUpInput) (*models.User, error
 	return user, nil
 }
 
-func (s *UserService) Login(email, password string) (string, error) {
-	user, err := s.repo.GetByEmail(email)
+func (s *UserService) Login(ctx context.Context, email, password string) (string, error) {
+	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
 		return "", err
 	}
@@ -78,12 +82,36 @@ func (s *UserService) Login(email, password string) (string, error) {
 	return token, nil
 }
 
-func (s *UserService) GetAll() ([]*models.User, error) {
-	users, err := s.repo.GetAll()
+func (s *UserService) GetAll(ctx context.Context) ([]*models.User, error) {
+	users, err := s.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return users, nil
+}
+
+func (s *UserService) GetByID(ctx context.Context, id int) (*models.User, error) {
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *UserService) UpdateByID(ctx context.Context, user *models.UserUpdate, id int) (*models.UserUpdate, error) {
+	user, err := s.repo.UpdateByID(ctx, user, id)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *UserService) DeleteByID(ctx context.Context, id int) error {
+	err := s.repo.DeleteByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *UserService) GetValidator() *validator.Validate {

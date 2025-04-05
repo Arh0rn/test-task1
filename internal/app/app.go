@@ -3,9 +3,13 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"test-task1/internal/controller/restapi"
 	usersController "test-task1/internal/controller/restapi/controllers/users"
 	"test-task1/internal/databases"
@@ -17,7 +21,9 @@ import (
 )
 
 type App struct {
-	cfg       *config.Config
+	cfg *config.Config
+	ctx context.Context
+
 	db        *sql.DB
 	hasher    *hash.Hasher
 	validator *validator.Validate
@@ -25,9 +31,10 @@ type App struct {
 	userRepo       *postgresUsersRepo.UserRepository
 	userService    *usersService.UserService
 	userController *usersController.UserController
-	handler        *restapi.Handler
-	router         *http.Handler
-	server         *http.Server
+
+	handler *restapi.Handler
+	router  *http.Handler
+	server  *http.Server
 }
 
 func NewApp(ctx context.Context) (*App, error) {
@@ -41,6 +48,8 @@ func NewApp(ctx context.Context) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//TODO: Add cache in future
 
 	log.Println("Database connection established")
 	hasher := hash.New(cfg.HashCost)
@@ -65,6 +74,7 @@ func NewApp(ctx context.Context) (*App, error) {
 
 	app := &App{
 		cfg:            cfg,
+		ctx:            ctx,
 		db:             db,
 		hasher:         hasher,
 		validator:      v,
@@ -79,14 +89,30 @@ func NewApp(ctx context.Context) (*App, error) {
 	return app, nil
 }
 
-func (a *App) Run(ctx context.Context) error {
-	defer a.db.Close()
-	log.Println("Starting server...")
-	err := a.server.ListenAndServe()
-	if err != nil {
-		log.Printf("Server error: %v\n", err)
-		return err
+func (a *App) Run() error {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Println("Starting server on", a.cfg.HTTPServer.Address)
+		if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(a.ctx, a.cfg.HTTPServer.ShutdownTimeout)
+	defer cancel()
+
+	if err := a.server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server shutdown error: %v", err)
 	}
+
+	if err := a.db.Close(); err != nil {
+		log.Fatalf("Database connection close error: %v", err)
+	}
+
+	log.Println("Server exited gracefully")
 	return nil
-	//TODO: add graceful shutdown
 }

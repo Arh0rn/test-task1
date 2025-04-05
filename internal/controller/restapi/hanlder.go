@@ -29,6 +29,9 @@ func (h *Handler) InitRoutes(cfg *config.HTTPServer) *http.Handler {
 	baseRouter.HandleFunc("POST /login", h.UserController.Login)
 
 	authorizedRouter.HandleFunc("GET /users", h.UserController.GetAll)
+	authorizedRouter.HandleFunc("GET /users/{id}", h.UserController.GetByID)
+	authorizedRouter.HandleFunc("PUT /users/{id}", h.UserController.UpdateByID)
+	authorizedRouter.HandleFunc("DELETE /users/{id}", h.UserController.DeleteByID)
 
 	baseRouter.Handle("/", middlewares.AuthMiddleware(cfg.JWTSecret)(authorizedRouter))
 

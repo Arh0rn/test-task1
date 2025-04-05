@@ -1,18 +1,24 @@
 package usersController
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/go-playground/validator/v10"
 	"net/http"
+	"strconv"
+	"test-task1/internal/controller/restapi/controllers/users/daos"
 	"test-task1/internal/controller/restapi/rest_errors"
 	"test-task1/internal/models"
 )
 
 type UserService interface {
-	SignUp(*models.SignUpInput) (*models.User, error)
-	Login(email, password string) (string, error)
-	GetAll() ([]*models.User, error)
+	SignUp(context.Context, *models.SignUpInput) (*models.User, error)
+	Login(ctx context.Context, email, password string) (string, error)
+	GetAll(context.Context) ([]*models.User, error)
+	GetByID(ctx context.Context, id int) (*models.User, error)
+	UpdateByID(ctx context.Context, user *models.UserUpdate, id int) (*models.UserUpdate, error)
+	DeleteByID(ctx context.Context, id int) error
 	GetValidator() *validator.Validate
 }
 
@@ -26,8 +32,9 @@ func New(service UserService) *UserController {
 
 func (c *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
 
-	var signUpInputDao SignUpInputDAO
+	var signUpInputDao daos.SignUpInputDAO
 	if err := json.NewDecoder(r.Body).Decode(&signUpInputDao); err != nil {
 		rest_errors.HandleError(w, rest_errors.ErrBadRequest, http.StatusBadRequest)
 	}
@@ -40,7 +47,7 @@ func (c *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	singUpInput := signUpInputDao.ToSignUpInput()
 
-	user, err := c.service.SignUp(singUpInput)
+	user, err := c.service.SignUp(ctx, singUpInput)
 	if errors.Is(err, models.ErrUserAlreadyExists) {
 		rest_errors.HandleError(w, err, http.StatusConflict) // 409
 		return
@@ -59,8 +66,9 @@ func (c *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
 
-	var LoginDao LoginInputDAO
+	var LoginDao daos.LoginInputDAO
 	if err := json.NewDecoder(r.Body).Decode(&LoginDao); err != nil {
 		rest_errors.HandleError(w, rest_errors.ErrBadRequest, http.StatusBadRequest)
 		return
@@ -74,7 +82,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 	LoginInput := LoginDao.ToLoginInput()
 
-	token, err := c.service.Login(LoginInput.Email, LoginInput.Password)
+	token, err := c.service.Login(ctx, LoginInput.Email, LoginInput.Password)
 	if errors.Is(err, models.ErrInvalidCredentials) {
 		rest_errors.HandleError(w, err, http.StatusUnauthorized)
 		return
@@ -84,7 +92,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenOutput := ToTokenDAO(token)
+	tokenOutput := daos.ToTokenDAO(token)
 
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(tokenOutput); err != nil {
@@ -95,17 +103,111 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
 
-	users, err := c.service.GetAll()
+	users, err := c.service.GetAll(ctx)
 	if err != nil {
 		rest_errors.HandleError(w, err, http.StatusInternalServerError)
 		return
 	}
 
-	UserListOutput := ToUserListDAO(users)
+	UserListOutput := daos.ToUserListDAO(users)
 
 	if err := json.NewEncoder(w).Encode(UserListOutput); err != nil {
 		rest_errors.HandleError(w, rest_errors.ErrInternalServer, http.StatusInternalServerError)
 		return
 	}
+}
+
+func (c *UserController) GetByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		rest_errors.HandleError(w, rest_errors.ErrBadRequest, http.StatusBadRequest)
+		return
+	}
+
+	user, err := c.service.GetByID(ctx, id)
+	if errors.Is(err, models.ErrUserNotFound) {
+		rest_errors.HandleError(w, err, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		rest_errors.HandleError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	userOutput := daos.ToUserOutputDAO(user)
+
+	if err := json.NewEncoder(w).Encode(userOutput); err != nil {
+		rest_errors.HandleError(w, rest_errors.ErrInternalServer, http.StatusInternalServerError)
+		return
+	}
+}
+
+func (c *UserController) UpdateByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		rest_errors.HandleError(w, rest_errors.ErrBadRequest, http.StatusBadRequest)
+		return
+	}
+
+	var userDao daos.UserUpdateDAO
+	if err := json.NewDecoder(r.Body).Decode(&userDao); err != nil {
+		rest_errors.HandleError(w, rest_errors.ErrBadRequest, http.StatusBadRequest)
+		return
+	}
+
+	v := c.service.GetValidator()
+	if err := userDao.ValidateWith(v); err != nil {
+		rest_errors.HandleError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	userUpdate := userDao.ToUserUpdate()
+
+	userUpdateOutput, err := c.service.UpdateByID(ctx, userUpdate, id)
+	if errors.Is(err, models.ErrUserNotFound) {
+		rest_errors.HandleError(w, err, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		rest_errors.HandleError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	userUpdateDao := daos.ToUserUpdateDAO(userUpdateOutput)
+
+	if err := json.NewEncoder(w).Encode(userUpdateDao); err != nil {
+		rest_errors.HandleError(w, rest_errors.ErrInternalServer, http.StatusInternalServerError)
+		return
+	}
+}
+
+func (c *UserController) DeleteByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		rest_errors.HandleError(w, rest_errors.ErrBadRequest, http.StatusBadRequest)
+		return
+	}
+
+	err = c.service.DeleteByID(ctx, id)
+	if errors.Is(err, models.ErrUserNotFound) {
+		rest_errors.HandleError(w, err, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		rest_errors.HandleError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

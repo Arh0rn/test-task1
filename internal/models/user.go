@@ -23,3 +23,8 @@ type UserOutput struct {
 	Name  string
 	Email string
 }
+
+type UserUpdate struct {
+	Name  string
+	Email string
+}
