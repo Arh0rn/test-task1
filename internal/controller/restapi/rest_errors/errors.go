@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	ErrInternalServer = errors.New("internal server error")
-	ErrBadRequest     = errors.New("bad request")
+	ErrInternalServer   = errors.New("internal server error")
+	ErrBadRequest       = errors.New("bad request")
+	ErrUserUnauthorized = errors.New("user unauthorized")
 )
 
 type ResponseError struct {

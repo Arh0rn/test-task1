@@ -2,6 +2,7 @@ package hash
 
 import (
 	"golang.org/x/crypto/bcrypt"
+	"log"
 )
 
 type Hasher struct {
@@ -22,5 +23,6 @@ func (h Hasher) Hash(password string) (string, error) {
 
 func (h Hasher) Verify(password, hashed string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
+	log.Println(hashed, password, err)
 	return err == nil
 }

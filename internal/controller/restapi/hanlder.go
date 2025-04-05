@@ -25,10 +25,12 @@ func (h *Handler) InitRoutes(cfg *config.HTTPServer) *http.Handler {
 	baseRouter := http.NewServeMux()
 	authorizedRouter := http.NewServeMux()
 
-	baseRouter.HandleFunc("POST /auth/sign-up", h.UserController.SignUp)
+	baseRouter.HandleFunc("POST /users", h.UserController.SignUp)
+	baseRouter.HandleFunc("POST /login", h.UserController.Login)
+
 	authorizedRouter.HandleFunc("GET /users", h.UserController.GetAll)
 
-	baseRouter.Handle("/", authorizedRouter)
+	baseRouter.Handle("/", middlewares.AuthMiddleware(cfg.JWTSecret)(authorizedRouter))
 
 	router := mainStack(baseRouter)
 	return &router

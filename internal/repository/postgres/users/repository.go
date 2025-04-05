@@ -2,8 +2,12 @@ package postgresUsersRepo
 
 import (
 	"database/sql"
+	"errors"
+	"github.com/lib/pq"
 	"test-task1/internal/models"
 )
+
+//TODO: add more methods to the repository
 
 type UserRepository struct {
 	db *sql.DB
@@ -24,9 +28,12 @@ func (r *UserRepository) Create(user *models.SignUpInput) (*models.User, error) 
 	).Scan(&id)
 
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return nil, models.ErrUserAlreadyExists
+		}
 		return nil, err
 	}
-
 	createdUser := &models.User{
 		ID:       id,
 		Name:     user.Name,
@@ -35,6 +42,26 @@ func (r *UserRepository) Create(user *models.SignUpInput) (*models.User, error) 
 	}
 
 	return createdUser, nil
+}
+
+func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
+	var user models.User
+
+	err := r.db.QueryRow(
+		`SELECT id, name, email, password 
+		 FROM users 
+		 WHERE email = $1`,
+		email,
+	).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, models.ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (r *UserRepository) GetAll() ([]*models.User, error) {

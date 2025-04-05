@@ -13,7 +13,12 @@ type SignUpInput struct {
 	Password string
 }
 
-type SingUpOutput struct {
+type LoginInput struct {
+	Email    string
+	Password string
+}
+
+type UserOutput struct {
 	ID    int
 	Name  string
 	Email string

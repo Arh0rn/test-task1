@@ -46,11 +46,11 @@ func NewApp(ctx context.Context) (*App, error) {
 	hasher := hash.New(cfg.HashCost)
 	v := validate.New()
 
-	//TODO: add jwt
-	//jwtSecret := []byte(cfg.JWTSecret)
+	jwtSecret := []byte(cfg.JWTSecret)
+	atttl := cfg.AccessTokenTTL
 
 	userRepository := postgresUsersRepo.New(db)
-	userService := usersService.New(userRepository, hasher, v)
+	userService := usersService.New(userRepository, hasher, v, jwtSecret, atttl)
 	userController := usersController.New(userService)
 	handler := restapi.NewHandler(userController)
 	router := handler.InitRoutes(&cfg.HTTPServer)
@@ -88,4 +88,5 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 	return nil
+	//TODO: add graceful shutdown
 }

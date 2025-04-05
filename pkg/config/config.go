@@ -19,9 +19,9 @@ type HTTPServer struct {
 	Address         string        `yaml:"host" env-default:"localhost:8081"`
 	ReadTimeout     time.Duration `yaml:"read-timeout" env-default:"5s"`
 	WriteTimeout    time.Duration `yaml:"write-timeout" env-default:"10s"`
-	IdleTimeout     time.Duration `yaml:"idleTimeout" env-default:"60s"`
-	AccessTokenTTL  time.Duration `yaml:"access-refresh_tokens-ttl" env-default:"1h"`
-	RefreshTokenTTL time.Duration `yaml:"refresh-refresh_tokens-ttl" env-default:"24h"`
+	IdleTimeout     time.Duration `yaml:"idle-timeout" env-default:"60s"`
+	AccessTokenTTL  time.Duration `yaml:"access-token-ttl" env-default:"1h"`
+	RefreshTokenTTL time.Duration `yaml:"refresh-token-ttl" env-default:"24h"`
 	HashCost        int           `env:"HASH_COST" env-required:"true"`
 	JWTSecret       string        `env:"JWT_SECRET" env-required:"true"`
 }

@@ -1,10 +1,10 @@
 env: "local"
-http_server:
+http-server:
   address: "localhost:8081"
   read-timeout: 10s
   write-timeout: 10s
-  idle_timeout: 60s
-  access-token-ttl: 1h
+  idle-timeout: 60s
+  access-token-ttl: 10m
   refresh-token-ttl: 24h
 db:
   host: "localhost"
