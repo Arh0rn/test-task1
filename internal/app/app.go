@@ -42,6 +42,9 @@ func NewApp(ctx context.Context) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//TODO: Add structured logger
+
 	log.Printf("Config loaded: %+v\n", cfg)
 
 	db, err := databases.NewPostgresConnection(&cfg.Database)
