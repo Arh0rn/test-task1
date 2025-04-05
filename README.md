@@ -138,7 +138,7 @@ All endpoints (except `POST /users` and `POST /login`) **require a valid JWT** i
     "name": "John Doe",
     "email": "john.doe@example.com"
   },
-  ...
+  "..."
 ]
 ```
 
