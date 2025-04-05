@@ -6,7 +6,7 @@ import (
 )
 
 type UserUpdateDAO struct {
-	Name  string `json:"name" validate:"omitempty,gte=3,lte=32" example:"John Doe"`
+	Name  string `json:"name" validate:"required,gte=3,lte=32" example:"John Doe"`
 	Email string `json:"email" validate:"required,email" example:"john.doe@example.com"`
 }
 

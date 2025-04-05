@@ -167,7 +167,7 @@ func (c *UserController) UpdateByID(w http.ResponseWriter, r *http.Request) {
 
 	v := c.service.GetValidator()
 	if err := userDao.ValidateWith(v); err != nil {
-		rest_errors.HandleError(w, err, http.StatusBadRequest)
+		rest_errors.HandleError(w, models.ErrValidation, http.StatusBadRequest)
 		return
 	}
 
