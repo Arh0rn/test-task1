@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/go-playground/validator/v10"
+	"log/slog"
 	"test-task1/internal/models"
-	"test-task1/pkg/jwt_token"
+	"test-task1/pkg/jwtoken"
 	"time"
 )
 
@@ -79,11 +80,12 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 	if !valid {
 		return "", models.ErrInvalidCredentials
 	}
-	token, err := jwt_token.GenerateToken(user.ID, user.Email, s.jwtSecret, s.tokenTTL)
+	token, err := jwtoken.GenerateToken(user.ID, user.Email, s.jwtSecret, s.tokenTTL)
 	if err != nil {
 		return "", err
 	}
 
+	slog.DebugContext(ctx, "Token generated", "token", token)
 	return token, nil
 }
 

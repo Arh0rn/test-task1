@@ -1,6 +1,7 @@
 # Choose different file in the .env file
-# "local" for local development only NOT TO PROD!!!
-env: "local" # Environment name: local, dev, prod
+# "dev" for development only NOT TO PROD!!!
+# Effect on the logger and other settings...
+env: "dev" # Environment name: local, dev, prod
 http-server:
   address: "localhost:8081"
   read-timeout: 10s

@@ -96,7 +96,7 @@ All endpoints (except `POST /users` and `POST /login`) **require a valid JWT** i
 **Response:**
 ```json
 {
-  "token": "<jwt_token>"
+  "token": "<jwtoken>"
 }
 ```
 

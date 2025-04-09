@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/go-playground/validator/v10"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,12 +18,14 @@ import (
 	usersService "test-task1/internal/service/users"
 	"test-task1/pkg/config"
 	"test-task1/pkg/hash"
+	"test-task1/pkg/logger"
 	"test-task1/pkg/validate"
 )
 
 type App struct {
 	cfg *config.Config
 	ctx context.Context
+	log *slog.Logger
 
 	db        *sql.DB
 	hasher    *hash.Hasher
@@ -43,10 +46,10 @@ func NewApp(ctx context.Context) (*App, error) {
 		return nil, err
 	}
 
-	//TODO: Add structured logger
+	log := logger.InitLogger(cfg.Env)
+	slog.SetDefault(log) //No need to inject logger to every layer ^_^
 
-	log.Printf("Config loaded: %+v\n", cfg)
-
+	log.Debug(fmt.Sprintf("%+v", cfg))
 	db, err := databases.NewPostgresConnection(&cfg.Database)
 	if err != nil {
 		return nil, err
@@ -54,7 +57,7 @@ func NewApp(ctx context.Context) (*App, error) {
 
 	//TODO: Add cache in future
 
-	log.Println("Database connection established")
+	log.Info("Database connection established")
 	hasher := hash.New(cfg.HashCost)
 	v := validate.New()
 
@@ -78,6 +81,7 @@ func NewApp(ctx context.Context) (*App, error) {
 	app := &App{
 		cfg:            cfg,
 		ctx:            ctx,
+		log:            log,
 		db:             db,
 		hasher:         hasher,
 		validator:      v,
@@ -97,25 +101,25 @@ func (a *App) Run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Println("Starting server on", a.cfg.HTTPServer.Address)
+		a.log.Info("Starting server", "address", a.cfg.HTTPServer.Address)
 		if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Server error: %v", err)
+			a.log.Error("Server starting error", "error", err)
 		}
 	}()
 	<-quit
-	log.Println("Shutting down server...")
+	a.log.Info("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(a.ctx, a.cfg.HTTPServer.ShutdownTimeout)
 	defer cancel()
 
 	if err := a.server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server shutdown error: %v", err)
+		a.log.Error("Server shutdown error", "error", err)
 	}
 
 	if err := a.db.Close(); err != nil {
-		log.Fatalf("Database connection close error: %v", err)
+		a.log.Error("Database connection close error", "error", err)
 	}
 
-	log.Println("Server exited gracefully")
+	a.log.Info("Server exited gracefully")
 	return nil
 }

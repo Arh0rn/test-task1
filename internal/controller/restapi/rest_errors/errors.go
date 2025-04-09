@@ -3,7 +3,7 @@ package rest_errors
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -28,7 +28,7 @@ func HandleError(w http.ResponseWriter, err error, status int) {
 	resp := &ResponseError{Error: err.Error()}
 
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		log.Printf("Error writing error response: %v", err)
+		slog.Error("Error encoding error response", "error", err)
 		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
 	}
 }
