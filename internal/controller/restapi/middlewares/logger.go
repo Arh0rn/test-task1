@@ -1,13 +1,20 @@
 package middlewares
 
 import (
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
+	"test-task1/pkg/logger"
 	"time"
 )
 
 func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		requestID := uuid.New()
+		ctx = logger.WithLogRequestID(ctx, requestID.String())
+		r = r.WithContext(ctx)
+
 		start := time.Now()
 		rwl := NewResponseLogger(w)
 

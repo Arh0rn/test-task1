@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-	log.Println("Program started")
 	ctx := context.Background()
 	a, err := app.NewApp(ctx)
 	if err != nil {

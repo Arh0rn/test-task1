@@ -23,6 +23,7 @@ func (m *SlogHandlerMiddleware) Enabled(ctx context.Context, rec slog.Level) boo
 func (m *SlogHandlerMiddleware) Handle(ctx context.Context, rec slog.Record) error {
 	if c, ok := ctx.Value(key).(logCtx); ok {
 		rec.Add("UserID", c.UserID)
+		rec.Add("RequestID", c.RequestID)
 	}
 	return m.next.Handle(ctx, rec)
 }

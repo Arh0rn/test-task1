@@ -29,7 +29,7 @@ func InitLogger(env string) *slog.Logger {
 		handler = slog.NewJSONHandler(
 			os.Stdout,
 			&slog.HandlerOptions{
-				Level:     slog.LevelDebug,
+				Level:     slog.LevelInfo,
 				AddSource: true,
 			},
 		)
