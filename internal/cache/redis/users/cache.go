@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	userKey = "user:"
+	userKey   = "user:"
+	scanCount = 100
 )
 
 type UserCache struct {
@@ -44,33 +45,50 @@ func (c *UserCache) Set(ctx context.Context, user *domain.User) error {
 }
 
 func (c *UserCache) GetAll(ctx context.Context) ([]*domain.User, error) {
-	keys, err := c.client.Keys(ctx, "user:*").Result()
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get keys from cache", "error", err)
-		return nil, err
-	}
-	pipe := c.client.Pipeline()
-	cmds := make([]*redis.StringCmd, len(keys))
-	for i, key := range keys {
-		cmds[i] = pipe.Get(ctx, key)
-	}
-	_, err = pipe.Exec(ctx)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to execute pipeline", "error", err)
-		return nil, err
+	slog.DebugContext(ctx, "Getting all users from cache")
+	var (
+		cursor  uint64
+		allKeys []string
+	)
+	users := make([]*domain.User, 0)
+
+	for {
+		keys, nextCursor, err := c.client.Scan(ctx, cursor, userKey+"*", scanCount).Result()
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to scan keys", "error", err)
+			return nil, err
+		}
+		allKeys = append(allKeys, keys...)
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
 	}
 
-	var users []*domain.User
-	for _, cmd := range cmds {
-		data, err := cmd.Result()
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed to get user from cache", "error", err)
+	if len(allKeys) == 0 {
+		slog.InfoContext(ctx, "No users found in cache")
+		return nil, nil
+	}
+
+	values, err := c.client.MGet(ctx, allKeys...).Result()
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get users from cache", "error", err)
+		return nil, err
+	}
+	for _, val := range values {
+		if val == "" || val == "nil" {
+			continue
+		}
+		str, ok := val.(string)
+		if !ok {
 			continue
 		}
 		var user domain.User
-		if err := json.Unmarshal([]byte(data), &user); err == nil {
-			users = append(users, &user)
+		if err := json.Unmarshal([]byte(str), &user); err != nil {
+			slog.ErrorContext(ctx, "Failed to unmarshal user", "error", err)
+			continue
 		}
+		users = append(users, &user)
 	}
 	slog.DebugContext(ctx, "Users found in cache", "user_count", len(users))
 	return users, nil

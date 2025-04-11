@@ -106,9 +106,9 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 }
 
 func (s *UserService) GetAll(ctx context.Context) ([]*domain.User, error) {
+	//TODO: add pagination if needed
 	//users, err := s.cache.GetAll(ctx)
 	//if err == nil && len(users) > 0 {
-	//	slog.DebugContext(ctx, "Users found in cache", "users", users)
 	//	return users, nil
 	//}
 
