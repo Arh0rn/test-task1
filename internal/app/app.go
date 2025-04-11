@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	redisUsersCache "test-task1/internal/cache/redis/users"
 	"test-task1/internal/controller/restapi"
 	usersController "test-task1/internal/controller/restapi/controllers/users"
 	"test-task1/internal/databases"
@@ -52,12 +53,16 @@ func NewApp(ctx context.Context) (*App, error) {
 	log.Debug(fmt.Sprintf("%+v", cfg))
 	db, err := databases.NewPostgresConnection(&cfg.Database)
 	if err != nil {
+		slog.ErrorContext(ctx, "Failed to connect to database", "error", err)
 		return nil, err
 	}
 
-	//TODO: Add cache in future
+	cache, err := databases.NewRedisClient(&cfg.Cache)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to connect to Redis", "error", err)
+		return nil, err
+	}
 
-	log.Info("Database connection established")
 	hasher := hash.New(cfg.HashCost)
 	v := validate.New()
 
@@ -65,7 +70,8 @@ func NewApp(ctx context.Context) (*App, error) {
 	atttl := cfg.AccessTokenTTL
 
 	userRepository := postgresUsersRepo.New(db)
-	userService := usersService.New(userRepository, hasher, v, jwtSecret, atttl)
+	userCache := redisUsersCache.New(cache, cfg.Cache.TTL)
+	userService := usersService.New(userRepository, userCache, hasher, v, jwtSecret, atttl)
 	userController := usersController.New(userService)
 	handler := restapi.NewHandler(userController)
 	router := handler.InitRoutes(&cfg.HTTPServer)

@@ -5,17 +5,26 @@ import (
 	"errors"
 	"github.com/go-playground/validator/v10"
 	"log/slog"
-	"test-task1/internal/models"
+	"test-task1/internal/domain"
 	"test-task1/pkg/jwtoken"
 	"time"
 )
 
 type UserRepository interface {
-	Create(context.Context, *models.SignUpInput) (*models.User, error)
-	GetAll(context.Context) ([]*models.User, error)
-	GetByEmail(ctx context.Context, email string) (*models.User, error)
-	GetByID(ctx context.Context, id int) (*models.User, error)
-	UpdateByID(ctx context.Context, user *models.UserUpdate, id int) (*models.UserUpdate, error)
+	Create(context.Context, *domain.SignUpInput) (*domain.User, error)
+	GetAll(context.Context) ([]*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetByID(ctx context.Context, id int) (*domain.User, error)
+	UpdateByID(ctx context.Context, user *domain.UserUpdate, id int) (*domain.UserUpdate, error)
+	DeleteByID(ctx context.Context, id int) error
+}
+
+type UserCache interface {
+	Set(context.Context, *domain.User) error
+	GetAll(context.Context) ([]*domain.User, error)
+	SetAll(context.Context, []*domain.User) error
+	GetByID(ctx context.Context, id int) (*domain.User, error)
+	UpdateByID(ctx context.Context, user *domain.UserUpdate, id int) error
 	DeleteByID(ctx context.Context, id int) error
 }
 
@@ -25,7 +34,8 @@ type Hasher interface {
 }
 
 type UserService struct {
-	repo UserRepository
+	repo  UserRepository
+	cache UserCache
 
 	hasher    Hasher
 	validator *validator.Validate
@@ -36,6 +46,7 @@ type UserService struct {
 
 func New(
 	repo UserRepository,
+	cache UserCache,
 	hasher Hasher,
 	validator *validator.Validate,
 	jwts []byte,
@@ -43,6 +54,7 @@ func New(
 ) *UserService {
 	return &UserService{
 		repo:      repo,
+		cache:     cache,
 		hasher:    hasher,
 		validator: validator,
 		jwtSecret: jwts,
@@ -50,7 +62,7 @@ func New(
 	}
 }
 
-func (s *UserService) SignUp(ctx context.Context, userInput *models.SignUpInput) (*models.User, error) {
+func (s *UserService) SignUp(ctx context.Context, userInput *domain.SignUpInput) (*domain.User, error) {
 
 	hashedPassword, err := s.hasher.Hash(userInput.Password)
 	if err != nil {
@@ -63,13 +75,17 @@ func (s *UserService) SignUp(ctx context.Context, userInput *models.SignUpInput)
 		return nil, err
 	}
 
+	go func() {
+		err = s.cache.Set(context.Background(), user)
+	}()
+
 	return user, nil
 }
 
 func (s *UserService) Login(ctx context.Context, email, password string) (string, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
-	if errors.Is(err, models.ErrUserNotFound) {
-		return "", models.ErrInvalidCredentials
+	if errors.Is(err, domain.ErrUserNotFound) {
+		return "", domain.ErrInvalidCredentials
 
 	}
 	if err != nil {
@@ -78,7 +94,7 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 
 	valid := s.hasher.Verify(password, user.Password)
 	if !valid {
-		return "", models.ErrInvalidCredentials
+		return "", domain.ErrInvalidCredentials
 	}
 	token, err := jwtoken.GenerateToken(user.ID, user.Email, s.jwtSecret, s.tokenTTL)
 	if err != nil {
@@ -89,27 +105,52 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 	return token, nil
 }
 
-func (s *UserService) GetAll(ctx context.Context) ([]*models.User, error) {
-	users, err := s.repo.GetAll(ctx)
+func (s *UserService) GetAll(ctx context.Context) ([]*domain.User, error) {
+	users, err := s.cache.GetAll(ctx)
+	if err == nil && len(users) > 0 {
+		slog.DebugContext(ctx, "Users found in cache", "users", users)
+		return users, nil
+	}
+
+	users, err = s.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+		err = s.cache.SetAll(context.Background(), users)
+	}()
 	return users, nil
 }
 
-func (s *UserService) GetByID(ctx context.Context, id int) (*models.User, error) {
-	user, err := s.repo.GetByID(ctx, id)
+func (s *UserService) GetByID(ctx context.Context, id int) (*domain.User, error) {
+	user, err := s.cache.GetByID(ctx, id)
+	if err == nil && user != nil {
+		slog.DebugContext(ctx, "User found in cache", "user", user)
+		return user, nil
+	}
+
+	user, err = s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+		err = s.cache.Set(context.Background(), user)
+	}()
+
 	return user, nil
 }
 
-func (s *UserService) UpdateByID(ctx context.Context, user *models.UserUpdate, id int) (*models.UserUpdate, error) {
+func (s *UserService) UpdateByID(ctx context.Context, user *domain.UserUpdate, id int) (*domain.UserUpdate, error) {
 	user, err := s.repo.UpdateByID(ctx, user, id)
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+		err = s.cache.UpdateByID(context.Background(), user, id)
+	}()
 	return user, nil
 }
 
@@ -118,6 +159,10 @@ func (s *UserService) DeleteByID(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
+
+	go func() {
+		err = s.cache.DeleteByID(context.Background(), id)
+	}()
 	return nil
 }
 

@@ -10,7 +10,12 @@ http-server:
   shutdown-timeout: 5s
   access-token-ttl: 10m
   refresh-token-ttl: 24h
-db:
+db: #password in .env
   host: "localhost"
   port: 5432
   name: "test-task1"
+cache: #password in .env
+  host: "localhost"
+  port: 6379
+  db-index: 0
+  ttl: 10m

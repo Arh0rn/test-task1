@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"test-task1/internal/controller/restapi/controllers/users/daos"
 	"test-task1/internal/controller/restapi/rest_errors"
-	"test-task1/internal/models"
+	"test-task1/internal/domain"
 )
 
 type UserService interface {
-	SignUp(context.Context, *models.SignUpInput) (*models.User, error)
+	SignUp(context.Context, *domain.SignUpInput) (*domain.User, error)
 	Login(ctx context.Context, email, password string) (string, error)
-	GetAll(context.Context) ([]*models.User, error)
-	GetByID(ctx context.Context, id int) (*models.User, error)
-	UpdateByID(ctx context.Context, user *models.UserUpdate, id int) (*models.UserUpdate, error)
+	GetAll(context.Context) ([]*domain.User, error)
+	GetByID(ctx context.Context, id int) (*domain.User, error)
+	UpdateByID(ctx context.Context, user *domain.UserUpdate, id int) (*domain.UserUpdate, error)
 	DeleteByID(ctx context.Context, id int) error
 	GetValidator() *validator.Validate
 }
@@ -41,14 +41,14 @@ func (c *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	v := c.service.GetValidator()
 	if err := signUpInputDao.ValidateWith(v); err != nil {
-		rest_errors.HandleError(w, models.ErrValidation, http.StatusBadRequest)
+		rest_errors.HandleError(w, domain.ErrValidation, http.StatusBadRequest)
 		return
 	}
 
 	singUpInput := signUpInputDao.ToSignUpInput()
 
 	user, err := c.service.SignUp(ctx, singUpInput)
-	if errors.Is(err, models.ErrUserAlreadyExists) {
+	if errors.Is(err, domain.ErrUserAlreadyExists) {
 		rest_errors.HandleError(w, err, http.StatusConflict) // 409
 		return
 	}
@@ -78,14 +78,14 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 	v := c.service.GetValidator()
 	if err := LoginDao.ValidateWith(v); err != nil {
-		rest_errors.HandleError(w, models.ErrValidation, http.StatusBadRequest)
+		rest_errors.HandleError(w, domain.ErrValidation, http.StatusBadRequest)
 		return
 	}
 
 	LoginInput := LoginDao.ToLoginInput()
 
 	token, err := c.service.Login(ctx, LoginInput.Email, LoginInput.Password)
-	if errors.Is(err, models.ErrInvalidCredentials) {
+	if errors.Is(err, domain.ErrInvalidCredentials) {
 		rest_errors.HandleError(w, err, http.StatusUnauthorized)
 		return
 	}
@@ -132,7 +132,7 @@ func (c *UserController) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := c.service.GetByID(ctx, id)
-	if errors.Is(err, models.ErrUserNotFound) {
+	if errors.Is(err, domain.ErrUserNotFound) {
 		rest_errors.HandleError(w, err, http.StatusNotFound)
 		return
 	}
@@ -167,14 +167,14 @@ func (c *UserController) UpdateByID(w http.ResponseWriter, r *http.Request) {
 
 	v := c.service.GetValidator()
 	if err := userDao.ValidateWith(v); err != nil {
-		rest_errors.HandleError(w, models.ErrValidation, http.StatusBadRequest)
+		rest_errors.HandleError(w, domain.ErrValidation, http.StatusBadRequest)
 		return
 	}
 
 	userUpdate := userDao.ToUserUpdate()
 
 	userUpdateOutput, err := c.service.UpdateByID(ctx, userUpdate, id)
-	if errors.Is(err, models.ErrUserNotFound) {
+	if errors.Is(err, domain.ErrUserNotFound) {
 		rest_errors.HandleError(w, err, http.StatusNotFound)
 		return
 	}
@@ -202,7 +202,7 @@ func (c *UserController) DeleteByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = c.service.DeleteByID(ctx, id)
-	if errors.Is(err, models.ErrUserNotFound) {
+	if errors.Is(err, domain.ErrUserNotFound) {
 		rest_errors.HandleError(w, err, http.StatusNotFound)
 		return
 	}

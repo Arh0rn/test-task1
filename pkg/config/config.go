@@ -13,6 +13,7 @@ type Config struct {
 	Env        string `yaml:"env" env-default:"local"`
 	HTTPServer `yaml:"http-server"`
 	Database   `yaml:"db"`
+	Cache      `yaml:"cache"`
 }
 
 type HTTPServer struct {
@@ -33,6 +34,14 @@ type Database struct {
 	DBName   string `yaml:"name" env-required:"true"`
 	User     string `yaml:"users" env-default:"postgres"`
 	Password string `env:"DB_PASSWORD" env-required:"true"`
+}
+
+type Cache struct {
+	Host     string        `yaml:"host" env-default:"localhost"`
+	Port     int           `yaml:"port" env-default:"6379"`
+	DBIndex  int           `yaml:"db-index" env-default:"0"`
+	TTL      time.Duration `yaml:"ttl" env-default:"10m"`
+	Password string        `env:"CACHE_PASSWORD" env-required:"TRUE"`
 }
 
 func LoadConfig() (*Config, error) {

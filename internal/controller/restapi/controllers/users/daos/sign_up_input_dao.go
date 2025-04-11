@@ -2,7 +2,7 @@ package daos
 
 import (
 	"github.com/go-playground/validator/v10"
-	"test-task1/internal/models"
+	"test-task1/internal/domain"
 )
 
 type SignUpInputDAO struct {
@@ -15,14 +15,14 @@ func (dao *SignUpInputDAO) ValidateWith(v *validator.Validate) error {
 	return v.Struct(dao)
 }
 
-func (dao *SignUpInputDAO) ToSignUpInput() *models.SignUpInput {
-	return &models.SignUpInput{
+func (dao *SignUpInputDAO) ToSignUpInput() *domain.SignUpInput {
+	return &domain.SignUpInput{
 		Name:     dao.Name,
 		Email:    dao.Email,
 		Password: dao.Password,
 	}
 }
-func ToSignUpInputDAO(input *models.SignUpInput) *SignUpInputDAO {
+func ToSignUpInputDAO(input *domain.SignUpInput) *SignUpInputDAO {
 	return &SignUpInputDAO{
 		Name:     input.Name,
 		Email:    input.Email,

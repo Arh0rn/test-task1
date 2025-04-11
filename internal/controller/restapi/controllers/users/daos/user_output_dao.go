@@ -1,6 +1,6 @@
 package daos
 
-import "test-task1/internal/models"
+import "test-task1/internal/domain"
 
 type UserOutputDAO struct {
 	ID    int    `json:"id"`
@@ -8,7 +8,7 @@ type UserOutputDAO struct {
 	Email string `json:"email"`
 }
 
-func ToUserOutputDAO(user *models.User) *UserOutputDAO {
+func ToUserOutputDAO(user *domain.User) *UserOutputDAO {
 	return &UserOutputDAO{
 		ID:    user.ID,
 		Name:  user.Name,
@@ -20,7 +20,7 @@ type UserListDAO struct {
 	Users []UserOutputDAO `json:"users"`
 }
 
-func ToUserListDAO(users []*models.User) *UserListDAO {
+func ToUserListDAO(users []*domain.User) *UserListDAO {
 	var userList []UserOutputDAO
 	for _, user := range users {
 		userList = append(userList, *ToUserOutputDAO(user))
