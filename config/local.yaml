@@ -7,7 +7,7 @@ http-server:
   write-timeout: 10s
   idle-timeout: 60s
   shutdown-timeout: 5s
-  access-token-ttl: 10m
+  access-token-ttl: 100m
   refresh-token-ttl: 24h
 db: #password in .env
   host: "localhost"

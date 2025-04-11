@@ -106,13 +106,13 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 }
 
 func (s *UserService) GetAll(ctx context.Context) ([]*domain.User, error) {
-	users, err := s.cache.GetAll(ctx)
-	if err == nil && len(users) > 0 {
-		slog.DebugContext(ctx, "Users found in cache", "users", users)
-		return users, nil
-	}
+	//users, err := s.cache.GetAll(ctx)
+	//if err == nil && len(users) > 0 {
+	//	slog.DebugContext(ctx, "Users found in cache", "users", users)
+	//	return users, nil
+	//}
 
-	users, err = s.repo.GetAll(ctx)
+	users, err := s.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -147,9 +147,24 @@ func (s *UserService) UpdateByID(ctx context.Context, user *domain.UserUpdate, i
 	if err != nil {
 		return nil, err
 	}
-
+	//Strange decision, but otherwise i need to make double request to db
+	//Or add extra logic to the repo.UpdateByID method that allows to decide when to get the user from db
 	go func() {
 		err = s.cache.UpdateByID(context.Background(), user, id)
+		if err == nil {
+			slog.DebugContext(ctx, "User updated in cache", "user", user)
+			return
+		}
+		dbUser, err := s.repo.GetByID(context.Background(), id)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to get user by ID", "id", id)
+			return
+		}
+		err = s.cache.Set(context.Background(), dbUser)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to set user in cache", "id", id)
+			return
+		}
 	}()
 	return user, nil
 }

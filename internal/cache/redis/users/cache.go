@@ -20,6 +20,13 @@ type UserCache struct {
 	ttl    time.Duration
 }
 
+func New(client *redis.Client, ttl time.Duration) *UserCache {
+	return &UserCache{
+		client: client,
+		ttl:    ttl,
+	}
+}
+
 func (c *UserCache) Set(ctx context.Context, user *domain.User) error {
 	key := userKey + fmt.Sprint(user.ID)
 	data, err := json.Marshal(user)
@@ -27,15 +34,21 @@ func (c *UserCache) Set(ctx context.Context, user *domain.User) error {
 		slog.ErrorContext(ctx, "Failed to marshal user", "error", err)
 		return err
 	}
-	return c.client.Set(ctx, key, data, c.ttl).Err()
+	err = c.client.Set(ctx, key, data, c.ttl).Err()
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to set user in cache", "error", err)
+		return err
+	}
+	slog.DebugContext(ctx, "User set in cache", "user_id", user.ID)
+	return nil
 }
 
 func (c *UserCache) GetAll(ctx context.Context) ([]*domain.User, error) {
 	keys, err := c.client.Keys(ctx, "user:*").Result()
 	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get keys from cache", "error", err)
 		return nil, err
 	}
-
 	pipe := c.client.Pipeline()
 	cmds := make([]*redis.StringCmd, len(keys))
 	for i, key := range keys {
@@ -43,6 +56,7 @@ func (c *UserCache) GetAll(ctx context.Context) ([]*domain.User, error) {
 	}
 	_, err = pipe.Exec(ctx)
 	if err != nil {
+		slog.ErrorContext(ctx, "Failed to execute pipeline", "error", err)
 		return nil, err
 	}
 
@@ -50,6 +64,7 @@ func (c *UserCache) GetAll(ctx context.Context) ([]*domain.User, error) {
 	for _, cmd := range cmds {
 		data, err := cmd.Result()
 		if err != nil {
+			slog.ErrorContext(ctx, "Failed to get user from cache", "error", err)
 			continue
 		}
 		var user domain.User
@@ -57,6 +72,7 @@ func (c *UserCache) GetAll(ctx context.Context) ([]*domain.User, error) {
 			users = append(users, &user)
 		}
 	}
+	slog.DebugContext(ctx, "Users found in cache", "user_count", len(users))
 	return users, nil
 }
 
@@ -66,12 +82,18 @@ func (c *UserCache) SetAll(ctx context.Context, users []*domain.User) error {
 		key := userKey + fmt.Sprint(user.ID)
 		data, err := json.Marshal(user)
 		if err != nil {
+			slog.ErrorContext(ctx, "Failed to marshal user", "error", err)
 			continue
 		}
 		pipe.Set(ctx, key, data, c.ttl)
 	}
 	_, err := pipe.Exec(ctx)
-	return err
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to execute pipeline", "error", err)
+		return err
+	}
+	slog.DebugContext(ctx, "Users set in cache", "user_count", len(users))
+	return nil
 }
 
 func (c *UserCache) GetByID(ctx context.Context, id int) (*domain.User, error) {
@@ -80,8 +102,9 @@ func (c *UserCache) GetByID(ctx context.Context, id int) (*domain.User, error) {
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			slog.InfoContext(ctx, "User not found in cache", "user_id", id)
-			return nil, nil
+			return nil, domain.ErrUserNotFound
 		}
+		slog.ErrorContext(ctx, "Failed to get user from cache", "error", err)
 		return nil, err
 	}
 
@@ -91,29 +114,37 @@ func (c *UserCache) GetByID(ctx context.Context, id int) (*domain.User, error) {
 		return nil, err
 
 	}
+	slog.DebugContext(ctx, "User found in cache", "user_id", user.ID)
 	return &user, nil
 }
 
 func (c *UserCache) UpdateByID(ctx context.Context, update *domain.UserUpdate, id int) error {
 	user, err := c.GetByID(ctx, id)
 	if err != nil || user == nil {
+		slog.ErrorContext(ctx, "Failed to get user for update", "error", err)
 		return err
 	}
 
 	user.Name = update.Name
 	user.Email = update.Email
 
-	return c.Set(ctx, user)
+	err = c.Set(ctx, user)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to set updated user in cache", "error", err)
+		return err
+	}
+
+	slog.DebugContext(ctx, "User updated in cache", "user_id", user.ID)
+	return nil
 }
 
 func (c *UserCache) DeleteByID(ctx context.Context, id int) error {
 	key := userKey + fmt.Sprint(id)
-	return c.client.Del(ctx, key).Err()
-}
-
-func New(client *redis.Client, ttl time.Duration) *UserCache {
-	return &UserCache{
-		client: client,
-		ttl:    ttl,
+	err := c.client.Del(ctx, key).Err()
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to delete user from cache", "error", err)
+		return err
 	}
+	slog.DebugContext(ctx, "User deleted from cache", "user_id", id)
+	return nil
 }
