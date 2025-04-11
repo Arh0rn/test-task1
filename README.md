@@ -33,7 +33,10 @@ A simple REST API written in Go with JWT-based authentication and PostgreSQL dat
 **Environment Variables (`.env`)**
 ```
 CONFIG_PATH=./config/local.yaml
+
 DB_PASSWORD=postgres
+CACHE_PASSWORD=redis
+
 HASH_COST=10
 JWT_SECRET=somesecret
 ```
