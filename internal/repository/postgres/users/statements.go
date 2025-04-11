@@ -1,6 +1,6 @@
 package postgresUsersRepo
 
-//TODO: make statements
+//TODO: make statements if needed
 
 //const (
 //	createUser     = `INSERT INTO users (name, email, ) VALUES ($1, $2)`
