@@ -19,6 +19,7 @@ func NewHandler(userController *usersController.UserController) *Handler {
 
 func (h *Handler) InitRoutes(cfg *config.HTTPServer) *http.Handler {
 	mainStack := middlewares.CreateMiddlewareStack(
+		middlewares.SetCORS,
 		middlewares.LoggerMiddleware,
 	)
 
