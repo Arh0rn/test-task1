@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/Arh0rn/test-task1/internal/controller/restapi/controllers/users/daos"
+	"github.com/Arh0rn/test-task1/internal/controller/restapi/rest_errors"
+	"github.com/Arh0rn/test-task1/internal/domain"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 	"strconv"
-	"test-task1/internal/controller/restapi/controllers/users/daos"
-	"test-task1/internal/controller/restapi/rest_errors"
-	"test-task1/internal/domain"
 )
 
 type UserService interface {
@@ -30,6 +30,18 @@ func New(service UserService) *UserController {
 	return &UserController{service: service}
 }
 
+// SignUp godoc
+// @Summary      Register new user
+// @Description  Creates a new user with name, email, and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      daos.SignUpInputDAO  true  "User sign up input"
+// @Success      201    {object}  daos.UserOutputDAO
+// @Failure      400    {object}  rest_errors.ResponseError
+// @Failure      409    {object}  rest_errors.ResponseError
+// @Failure      500    {object}  rest_errors.ResponseError
+// @Router       /users [post]
 func (c *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	ctx := r.Context()
@@ -66,6 +78,19 @@ func (c *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Login godoc
+// @Summary      User login
+// @Description  Authenticates a user and returns JWT token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      daos.LoginInputDAO  true  "User login input"
+// @Success      200    {object}  daos.TokenDAO
+// @Failure      400    {object}  rest_errors.ResponseError
+// @Failure      401    {object}  rest_errors.ResponseError
+// @Failure      422    {object}  rest_errors.ResponseError
+// @Failure      500    {object}  rest_errors.ResponseError
+// @Router       /login [post]
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	ctx := r.Context()
@@ -78,7 +103,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 	v := c.service.GetValidator()
 	if err := LoginDao.ValidateWith(v); err != nil {
-		rest_errors.HandleError(w, domain.ErrValidation, http.StatusBadRequest)
+		rest_errors.HandleError(w, domain.ErrValidation, http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -103,6 +128,15 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetAll godoc
+// @Summary      Get all users
+// @Tags         users
+// @Security  BearerAuth
+// @Produce      json
+// @Success      200  {array}   daos.UserOutputDAO
+// @Failure      401  {object}  rest_errors.ResponseError
+// @Failure      500  {object}  rest_errors.ResponseError
+// @Router       /users [get]
 func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	ctx := r.Context()
@@ -121,6 +155,19 @@ func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetByID godoc
+// @Summary      Get user by ID
+// @Description  Retrieves a single user by their ID
+// @Tags         users
+// @Security  BearerAuth
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {object}  daos.UserOutputDAO
+// @Failure      400  {object}  rest_errors.ResponseError
+// @Failure      401  {object}  rest_errors.ResponseError
+// @Failure      404  {object}  rest_errors.ResponseError
+// @Failure      500  {object}  rest_errors.ResponseError
+// @Router       /users/{id} [get]
 func (c *UserController) GetByID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	ctx := r.Context()
@@ -149,6 +196,21 @@ func (c *UserController) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateByID godoc
+// @Summary      Update user by ID
+// @Description  Updates user fields like name or email by their ID
+// @Tags         users
+// @Security  BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id    path      int                   true  "User ID"
+// @Param        input body      daos.UserUpdateDAO    true  "User update input"
+// @Success      200   {object}  daos.UserUpdateDAO
+// @Failure      400   {object}  rest_errors.ResponseError
+// @Failure      401   {object}  rest_errors.ResponseError
+// @Failure      404   {object}  rest_errors.ResponseError
+// @Failure      500   {object}  rest_errors.ResponseError
+// @Router       /users/{id} [put]
 func (c *UserController) UpdateByID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	ctx := r.Context()
@@ -191,6 +253,19 @@ func (c *UserController) UpdateByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteByID godoc
+// @Summary      Delete user by ID
+// @Description  Deletes a user from the system by their ID
+// @Tags         users
+// @Security  BearerAuth
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Success      204  "No Content"
+// @Failure      400  {object}  rest_errors.ResponseError
+// @Failure      401  {object}  rest_errors.ResponseError
+// @Failure      404  {object}  rest_errors.ResponseError
+// @Failure      500  {object}  rest_errors.ResponseError
+// @Router       /users/{id} [delete]
 func (c *UserController) DeleteByID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	ctx := r.Context()

@@ -2,12 +2,12 @@ package middlewares
 
 import (
 	"context"
+	"github.com/Arh0rn/test-task1/internal/controller/restapi/rest_errors"
+	"github.com/Arh0rn/test-task1/pkg/jwtoken"
+	"github.com/Arh0rn/test-task1/pkg/logger"
 	"log/slog"
 	"net/http"
 	"strconv"
-	"test-task1/internal/controller/restapi/rest_errors"
-	"test-task1/pkg/jwtoken"
-	"test-task1/pkg/logger"
 )
 
 func AuthMiddleware(secret string) Middleware {

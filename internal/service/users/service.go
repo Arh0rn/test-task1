@@ -3,10 +3,10 @@ package usersService
 import (
 	"context"
 	"errors"
+	"github.com/Arh0rn/test-task1/internal/domain"
+	"github.com/Arh0rn/test-task1/pkg/jwtoken"
 	"github.com/go-playground/validator/v10"
 	"log/slog"
-	"test-task1/internal/domain"
-	"test-task1/pkg/jwtoken"
 	"time"
 )
 

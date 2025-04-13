@@ -1,10 +1,11 @@
 package restapi
 
 import (
+	usersController "github.com/Arh0rn/test-task1/internal/controller/restapi/controllers/users"
+	"github.com/Arh0rn/test-task1/internal/controller/restapi/middlewares"
+	"github.com/Arh0rn/test-task1/internal/controller/restapi/swagger"
+	"github.com/Arh0rn/test-task1/pkg/config"
 	"net/http"
-	usersController "test-task1/internal/controller/restapi/controllers/users"
-	"test-task1/internal/controller/restapi/middlewares"
-	"test-task1/pkg/config"
 )
 
 type Handler struct {
@@ -25,6 +26,8 @@ func (h *Handler) InitRoutes(cfg *config.HTTPServer) *http.Handler {
 
 	baseRouter := http.NewServeMux()
 	authorizedRouter := http.NewServeMux()
+
+	baseRouter.HandleFunc("GET /swagger/", swagger.Set(cfg))
 
 	baseRouter.HandleFunc("POST /users", h.UserController.SignUp)
 	baseRouter.HandleFunc("POST /login", h.UserController.Login)

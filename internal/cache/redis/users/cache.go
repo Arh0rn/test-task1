@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Arh0rn/test-task1/internal/domain"
 	"github.com/redis/go-redis/v9"
 	"log/slog"
-	"test-task1/internal/domain"
 	"time"
 )
 

@@ -1,10 +1,11 @@
 package middlewares
 
 import (
+	"github.com/Arh0rn/test-task1/pkg/logger"
 	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
-	"test-task1/pkg/logger"
+	"strings"
 	"time"
 )
 
@@ -21,18 +22,33 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(rwl, r)
 
 		duration := time.Since(start)
-		slog.InfoContext(
-			r.Context(),
-			"Request processed",
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-			slog.String("remote_addr", r.RemoteAddr),
-			slog.String("user_agent", r.UserAgent()),
-			slog.String("duration", duration.String()),
-			slog.Int("status_code", rwl.StatusCode),
-			slog.Int("body_size", rwl.BodySize),
-			slog.String("body", string(rwl.Body)),
-		)
+
+		if strings.HasPrefix(r.URL.Path, "/swagger/") {
+			slog.InfoContext(
+				r.Context(), "Request processed",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"remote_addr", r.RemoteAddr,
+				"user_agent", r.UserAgent(),
+				"duration", duration.String(),
+				"status_code", rwl.StatusCode,
+				"body_size", rwl.BodySize,
+				//"body", string(rwl.Body), // With no body to swagger html
+			)
+
+		} else {
+			slog.InfoContext(
+				r.Context(), "Request processed",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"remote_addr", r.RemoteAddr,
+				"user_agent", r.UserAgent(),
+				"duration", duration.String(),
+				"status_code", rwl.StatusCode,
+				"body_size", rwl.BodySize,
+				"body", string(rwl.Body),
+			)
+		}
 	})
 }
 

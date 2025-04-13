@@ -3,9 +3,9 @@ package databases
 import (
 	"database/sql"
 	"fmt"
+	"github.com/Arh0rn/test-task1/pkg/config"
 	"github.com/avast/retry-go"
 	_ "github.com/lib/pq"
-	"test-task1/pkg/config"
 	"time"
 )
 

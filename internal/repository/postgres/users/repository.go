@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/Arh0rn/test-task1/internal/domain"
 	"github.com/lib/pq"
 	"log/slog"
-	"test-task1/internal/domain"
 )
+
+// TODO: make soft delete
 
 type UserRepository struct {
 	db *sql.DB

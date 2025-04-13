@@ -1,8 +1,8 @@
 package daos
 
 import (
+	"github.com/Arh0rn/test-task1/internal/domain"
 	"github.com/go-playground/validator/v10"
-	"test-task1/internal/domain"
 )
 
 type LoginInputDAO struct {

@@ -1,6 +1,6 @@
 package daos
 
-import "test-task1/internal/domain"
+import "github.com/Arh0rn/test-task1/internal/domain"
 
 type UserOutputDAO struct {
 	ID    int    `json:"id"`

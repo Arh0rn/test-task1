@@ -3,8 +3,8 @@ package databases
 import (
 	"context"
 	"fmt"
+	"github.com/Arh0rn/test-task1/pkg/config"
 	"github.com/redis/go-redis/v9"
-	"test-task1/pkg/config"
 )
 
 func NewRedisClient(c *config.Cache) (*redis.Client, error) {
