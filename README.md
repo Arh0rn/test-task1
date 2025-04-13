@@ -15,19 +15,23 @@ A simple REST API written in Go with JWT-based authentication and PostgreSQL dat
 - Protected endpoints using JWT
 - CRUD operations on users
 - Input validation (email, password length)
+- Slog for logging
 - PostgreSQL as storage
+- Redis for caching
+- Swagger documentation
 - Uses context and graceful shutdown
 
 ---
 
 **Tech Stack**
 - Go (net/http)
-- PostgreSQL
+- PostgreSQL (`github.com/lib/pq`)
 - JWT (`github.com/golang-jwt/jwt/v5`)
 - Bcrypt (`golang.org/x/crypto/bcrypt`)
 - Validator (`github.com/go-playground/validator/v10`)
 - SQL driver (`github.com/lib/pq`)
-
+- Redis (`github.com/go-redis/redis/v8`)
+- Swagger (`github.com/swaggo/swag`)
 ---
 
 **Environment Variables example (`.env`)**
@@ -44,26 +48,38 @@ JWT_SECRET=somesecret
 ---
 
 **How to Run**
-1. Create a PostgreSQL database (`test-task1`)
-2. Set up your `.env` file
-3. Run database migrations
-4. Run the app using:
+Check Makefile for available commands.
+1. Set up PostgreSQL database
+2. Set up your Redis server
+3. Set up your `.env` file and config on `config/local.yaml`.
+4. Run database migrations:
+   ```bash
+   make migrate-up
+   ```
+5. Rebuild swagger docs using:
+   ```bash
+   swag init -g cmd/app/main.go
+   ```
+   or use the Makefile:
+   ```bash
+   make swag
+   ```
+6. Run the app using:
    ```bash
    go run cmd/app/main.go
    ```
-
 ---
 
 **Available Endpoints**
 
-| Method | Endpoint       | Auth | Description                   |
-|--------|----------------|------|-------------------------------|
-| POST   | `/login`       | ❌   | Login and get JWT             |
-| POST   | `/users`       | ❌   | Register a new user           |
-| GET    | `/users`       | ✅   | Get all users                 |
-| GET    | `/users/{id}`  | ✅   | Get user by ID                |
-| PUT    | `/users/{id}`  | ✅   | Update user (name/email)      |
-| DELETE | `/users/{id}`  | ✅   | Delete user by ID             |
+| Method | Endpoint      | Auth | Description              |
+|--------|---------------|------|--------------------------|
+| POST   | `/login`      | ❌    | Login and get JWT        |
+| POST   | `/users`      | ❌    | Register a new user      |
+| GET    | `/users`      | ✅    | Get all users            |
+| GET    | `/users/{id}` | ✅    | Get user by ID           |
+| PUT    | `/users/{id}` | ✅    | Update user (name/email) |
+| DELETE | `/users/{id}` | ✅    | Delete user by ID        |
 
 ---
 
@@ -87,7 +103,7 @@ All endpoints (except `POST /users` and `POST /login`) **require a valid JWT** i
 ### 🔐 `POST /login`
 
 **Description:** Authenticates the user and returns a JWT token.  
-**Auth:** ❌ No  
+**Auth:** ❌ No.
 **Body:**
 ```json
 {
@@ -99,7 +115,7 @@ All endpoints (except `POST /users` and `POST /login`) **require a valid JWT** i
 **Response:**
 ```json
 {
-  "token": "<jwtoken>"
+  "token": "<jwt-token>"
 }
 ```
 
@@ -108,7 +124,7 @@ All endpoints (except `POST /users` and `POST /login`) **require a valid JWT** i
 ### ➕ `POST /users`
 
 **Description:** Registers a new user (sign up).  
-**Auth:** ❌ No  
+**Auth:** ❌ No.
 **Body:**
 ```json
 {
@@ -189,5 +205,5 @@ All endpoints (except `POST /users` and `POST /login`) **require a valid JWT** i
 **Description:** Deletes a user by ID.  
 **Auth:** ✅ Yes  
 **Response:**  
-Status `204 No Content` with no body.
+Status `204 No Content` with no json body.
 
